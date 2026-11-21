@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simple Calculator</title>
+<style>
+  :root {
+    --bg: #1d1130;
+    --calc-bg: #2a1b4a;
+    --display-bg: #160c2b;
+    --btn: #3d2a66;
+    --btn-hover: #4c3580;
+    --op-btn: #6d4aff;
+    --op-hover: #7f5fff;
+    --eq-btn: #a58bff;
+    --eq-hover: #b69dff;
+    --text: #ffffff;
+    --muted: #9d8fc7;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  .calculator {
+    background: var(--calc-bg);
+    border-radius: 20px;
+    padding: 24px;
+    width: 100%;
+    max-width: 340px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+  }
+
+  .display {
+    background: var(--display-bg);
+    border-radius: 12px;
+    padding: 14px 18px;
+    margin-bottom: 18px;
+    text-align: right;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  .expression {
+    font-size: 1rem;
+    color: var(--muted);
+    min-height: 1.4em;
+  }
+
+  .result {
+    font-size: 2.2rem;
+    font-weight: 600;
+    margin-top: 4px;
+  }
+
+  .buttons {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+  }
+
+  button {
+    border: none;
+    border-radius: 12px;
+    padding: 16px 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    cursor: pointer;
+    background: var(--btn);
+    color: var(--text);
+    transition: background 0.15s, transform 0.05s;
+  }
+
+  button:hover { background: var(--btn-hover); }
+  button:active { transform: scale(0.96); }
+
+  .operator { background: var(--op-btn); }
+  .operator:hover { background: var(--op-hover); }
+
+  .equals {
+    background: var(--eq-btn);
+    color: #1d1130;
+    grid-column: span 2;
+  }
+  .equals:hover { background: var(--eq-hover); }
+
+  .clear { color: #ff8a80; font-weight: 700; }
+
+  .hint {
+    margin-top: 14px;
+    font-size: 0.78rem;
+    color: var(--muted);
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<div class="calculator">
+  <div class="display">
+    <div class="expression" id="expression">&nbsp;</div>
+    <div class="result" id="result">0</div>
+  </div>
+
+  <div class="buttons">
+    <button class="clear" data-action="clear">C</button>
+    <button data-action="paren">( )</button>
+    <button data-action="back">&#9003;</button>
+    <button class="operator" data-insert="/">&divide;</button>
+
+    <button data-insert="7">7</button>
+    <button data-insert="8">8</button>
+    <button data-insert="9">9</button>
+    <button class="operator" data-insert="*">&times;</button>
+
+    <button data-insert="4">4</button>
+    <button data-insert="5">5</button>
+    <button data-insert="6">6</button>
+    <button class="operator" data-insert="-">&minus;</button>
+
+    <button data-insert="1">1</button>
+    <button data-insert="2">2</button>
+    <button data-insert="3">3</button>
+    <button class="operator" data-insert="+">+</button>
+
+    <button data-insert="0" style="grid-column: span 2;">0</button>
+    <button data-insert=".">.</button>
+    <button class="equals" data-action="equals">=</button>
+  </div>
+
+  <div class="hint">Keyboard supported: digits, + &minus; &times; &divide;, ( ), Enter, Backspace, Esc</div>
+</div>
+
+<script>
+(function () {
+  const exprEl = document.getElementById('expression');
+  const resultEl = document.getElementById('result');
+  const OPERATORS = '+*/';
+
+  let expr = '';
+
+  function round(value) {
+    return String(Math.round(value * 1e10) / 1e10);
+  }
+
+  // Validate: only digits, operators, parens and dots; parens must balance.
+  function isValidExpression(str) {
+    if (!/^[0-9+\-*/().\s]*$/.test(str)) return false;
+    let depth = 0;
+    for (const ch of str) {
+      if (ch === '(') depth++;
+      if (ch === ')') depth--;
+      if (depth < 0) return false;
+    }
+    return depth === 0;
+  }
+
+  function safeEval(str) {
+    if (!isValidExpression(str)) throw new Error('invalid');
+    // Input is strictly filtered by the regex above, so only numbers,
+    // operators, parentheses and dots can reach this evaluation.
+    const value = Function('"use strict"; return (' + str + ')')();
+    if (typeof value !== 'number' || !isFinite(value)) throw new Error('undefined');
+    return value;
+  }
+
+  // Decide whether opening or closing paren makes sense right now.
+  function smartParen() {
+    const opens = (expr.match(/\(/g) || []).length;
+    const closes = (expr.match(/\)/g) || []).length;
+    if (/[0-9)]$/.test(expr) && opens > closes) {
+      expr += ')';
+    } else {
+      expr += '(';
+    }
+  }
+
+  function updatePreview() {
+    exprEl.textContent = expr || '\u00A0';
+    if (!expr) { resultEl.textContent = '0'; return; }
+    try {
+      resultEl.textContent = round(safeEval(expr));
+    } catch (e) {
+      // Keep showing the previous preview; '=' will report the problem.
+    }
+  }
+
+  function insert(text) {
+    const lastCh = expr.slice(-1);
+    if (OPERATORS.includes(text)) {
+      if (OPERATORS.includes(lastCh)) {
+        expr = expr.slice(0, -1) + text;       // replace previous operator
+      } else if (!expr && text !== '-') {
+        return;                                 // no leading + * /
+      }
+      expr += text;
+    } else {
+      expr += text;
+    }
+    updatePreview();
+  }
+
+  function backspace() {
+    expr = expr.slice(0, -1);
+    updatePreview();
+  }
+
+  function clearAll() {
+    expr = '';
+    exprEl.textContent = '\u00A0';
+    resultEl.textContent = '0';
+  }
+
+  function evaluate() {
+    if (!expr.trim()) return;
+    try {
+      const value = round(safeEval(expr));
+      exprEl.textContent = expr + ' =';
+      resultEl.textContent = value;
+      expr = value;                       // continue calculating from result
+    } catch (e) {
+      resultEl.textContent = 'Invalid';
+    }
+  }
+
+  document.querySelectorAll('button').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      if (btn.dataset.action === 'clear') clearAll();
+      else if (btn.dataset.action === 'back') backspace();
+      else if (btn.dataset.action === 'paren') { smartParen(); updatePreview(); }
+      else if (btn.dataset.action === 'equals') evaluate();
+      else if (btn.dataset.insert) insert(btn.dataset.insert);
+    });
+  });
+
+  document.addEventListener('keydown', function (e) {
+    const k = e.key;
+    if (/^[0-9.]$/.test(k)) insert(k);
+    else if (['+', '-', '*', '/'].includes(k)) insert(k);
+    else if (k === '(' || k === ')') { smartParen(); updatePreview(); }
+    else if (k === 'Enter' || k === '=') { e.preventDefault(); evaluate(); }
+    else if (k === 'Backspace') backspace();
+    else if (k === 'Escape') clearAll();
+  });
+})();
+</script>
+</body>
+</html>
