@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simple Calculator</title>
+  <style>
+    :root {
+      --bg: #1d1130;
+      --calc-bg: #2a1b4a;
+      --display-bg: #160c2b;
+      --btn: #3d2a66;
+      --btn-hover: #4c3580;
+      --op-btn: #6d4aff;
+      --op-hover: #7f5fff;
+      --eq-btn: #a58bff;
+      --eq-hover: #b69dff;
+      --text: #ffffff;
+      --muted: #9d8fc7;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .calculator {
+      background: var(--calc-bg);
+      border-radius: 20px;
+      padding: 24px;
+      width: 100%;
+      max-width: 340px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+    }
+
+    .display {
+      background: var(--display-bg);
+      border-radius: 12px;
+      padding: 14px 18px;
+      margin-bottom: 18px;
+      text-align: right;
+      overflow-x: auto;
+      white-space: nowrap;
+    }
+
+    .expression {
+      font-size: 1rem;
+      color: var(--muted);
+      min-height: 1.4em;
+    }
+
+    .result {
+      font-size: 2.2rem;
+      font-weight: 600;
+      margin-top: 4px;
+    }
+
+    .buttons {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
+
+    button {
+      border: none;
+      border-radius: 12px;
+      padding: 16px 0;
+      font-size: 1.25rem;
+      font-weight: 600;
+      cursor: pointer;
+      background: var(--btn);
+      color: var(--text);
+      transition: background 0.15s, transform 0.05s;
+    }
+
+    button:hover {
+      background: var(--btn-hover);
+    }
+
+    button:active {
+      transform: scale(0.96);
+    }
+
+    .operator {
+      background: var(--op-btn);
+    }
+
+    .operator:hover {
+      background: var(--op-hover);
+    }
+
+    .equals {
+      background: var(--eq-btn);
+      color: #1d1130;
+      grid-column: span 2;
+    }
+
+    .equals:hover {
+      background: var(--eq-hover);
+    }
+
+    .clear {
+      color: #ff8a80;
+      font-weight: 700;
+    }
+
+    .roman {
+      background: var(--op-btn);
+      font-size: 1rem;
+    }
+
+    .roman:hover {
+      background: var(--op-hover);
+    }
+
+    .hint {
+      margin-top: 14px;
+      font-size: 0.78rem;
+      color: var(--muted);
+      text-align: center;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="calculator">
+    <div class="display">
+      <div class="expression" data-role="expression">&nbsp;</div>
+      <div class="result" data-role="result">0</div>
+    </div>
+    <div id="calculator">
+      <div class="buttons" id="decimal_calculator" style="display: grid;">
+        <button class="clear" data-action="clear">C</button>
+        <button data-action="paren">( )</button>
+        <button data-action="back">&#9003;</button>
+        <button class="operator" data-insert="/">&divide;</button>
+
+        <button data-insert="7">7</button>
+        <button data-insert="8">8</button>
+        <button data-insert="9">9</button>
+        <button class="operator" data-insert="*">&times;</button>
+
+        <button data-insert="4">4</button>
+        <button data-insert="5">5</button>
+        <button data-insert="6">6</button>
+        <button class="operator" data-insert="-">&minus;</button>
+
+        <button data-insert="1">1</button>
+        <button data-insert="2">2</button>
+        <button data-insert="3">3</button>
+        <button class="operator" data-insert="+">+</button>
+
+        <button data-insert="0" style="grid-column: span 2;">0</button>
+        <button data-insert=".">.</button>
+        <button class="equals" data-action="equals">=</button>
+        <button onclick="toggleToRoma()" class="roman" data-action="equals">Roman</button>
+      </div>
+    </div>
+    <!-- <div class="hint">Keyboard supported: digits, + &minus; &times; &divide;, ( ), Enter, Backspace, Esc</div> -->
+    <div id="roman_calculator">
+      <div class="buttons" id="roman_number_calculator" style="display: none;">
+        <button class="clear" data-action="clear">C</button>
+        <!-- <button data-action="paren">( )</button> -->
+        <button data-action="back">&#9003;</button>
+        <button></button>
+        <button class="operator" data-insert="/">&divide;</button>
+
+        <button data-insert="M">M</button>
+        <button data-insert="D">D</button>
+        <button data-insert="C">C</button>
+        <button class="operator" data-insert="*">&times;</button>
+
+        <button data-insert="L">L</button>
+        <button data-insert="X">X</button>
+        <button data-insert="V">V</button>
+        <button class="operator" data-insert="-">&minus;</button>
+
+        <button data-insert="I">I</button>
+        <!-- <button data-insert="(">(</button> -->
+        <!-- <button data-insert=")">)</button> -->
+        <button class="equals" data-action="equals">=</button>
+        <button class="operator" data-insert="+">+</button>
+        <button onclick="toggleToDecimal()" class="roman" data-action="equals">Decimal</button>
+      </div>
+    </div>
+  </div>
+  <!-- <div class="hint">Keyboard supported: digits, + &minus; &times; &divide;, ( ), Enter, Backspace, Esc</div> -->
+
+  <script>
+    function toggleToRoma() {
+      document.getElementById('decimal_calculator').style.display = 'none';
+      document.getElementById('roman_number_calculator').style.display = 'grid';
+    }
+
+    function toggleToDecimal() {
+      document.getElementById('roman_number_calculator').style.display = 'none';
+      document.getElementById('decimal_calculator').style.display = 'grid';
+    }
+
+    function initDecimalCalculator() {
+      const panel = document.getElementById('decimal_calculator');
+      if (!panel) return;
+
+      const display = document.querySelector('.display');
+      const exprEl = display.querySelector('[data-role="expression"]');
+      const resultEl = display.querySelector('[data-role="result"]');
+      const OPERATORS = '+*/';
+      let expr = '';
+
+      function round(value) {
+        return String(Math.round(value * 1e10) / 1e10);
+      }
+
+      function isValidExpression(str) {
+        if (!/^[0-9+\-*/().\s]*$/.test(str)) return false;
+        let depth = 0;
+        for (const ch of str) {
+          if (ch === '(') depth++;
+          if (ch === ')') depth--;
+          if (depth < 0) return false;
+        }
+        return depth === 0;
+      }
+
+      function safeEval(str) {
+        if (!isValidExpression(str)) throw new Error('invalid');
+        const value = Function('"use strict"; return (' + str + ')')();
+        if (typeof value !== 'number' || !isFinite(value)) throw new Error('undefined');
+        return value;
+      }
+
+      function smartParen() {
+        const opens = (expr.match(/\(/g) || []).length;
+        const closes = (expr.match(/\)/g) || []).length;
+        if (/[0-9)]$/.test(expr) && opens > closes) {
+          expr += ')';
+        } else {
+          expr += '(';
+        }
+      }
+
+      function updatePreview() {
+        exprEl.textContent = expr || '\u00A0';
+        if (!expr) { resultEl.textContent = '0'; return; }
+        try {
+          resultEl.textContent = round(safeEval(expr));
+        } catch (e) { }
+      }
+
+      function insert(text) {
+        const lastCh = expr.slice(-1);
+        if (OPERATORS.includes(text)) {
+          if (OPERATORS.includes(lastCh)) {
+            expr = expr.slice(0, -1) + text;
+          } else if (!expr && text !== '-') {
+            return;
+          }
+          expr += text;
+        } else {
+          expr += text;
+        }
+        updatePreview();
+      }
+
+      function backspace() {
+        expr = expr.slice(0, -1);
+        updatePreview();
+      }
+
+      function clearAll() {
+        expr = '';
+        exprEl.textContent = '\u00A0';
+        resultEl.textContent = '0';
+      }
+
+      function evaluate() {
+        if (!expr.trim()) return;
+        try {
+          const value = round(safeEval(expr));
+          exprEl.textContent = expr + ' =';
+          resultEl.textContent = value;
+          expr = value;
+        } catch (e) {
+          resultEl.textContent = 'Invalid';
+        }
+      }
+
+      function visible() { return panel.offsetParent !== null; }
+
+      panel.querySelectorAll('button').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          if (btn.dataset.action === 'clear') clearAll();
+          else if (btn.dataset.action === 'back') backspace();
+          else if (btn.dataset.action === 'paren') { smartParen(); updatePreview(); }
+          else if (btn.dataset.action === 'equals') evaluate();
+          else if (btn.dataset.insert) insert(btn.dataset.insert);
+        });
+      });
+
+      document.addEventListener('keydown', function (e) {
+        if (!visible()) return;
+        const t = e.target;
+        if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+        const k = e.key;
+        if (/^[0-9.]$/.test(k)) insert(k);
+        else if (['+', '-', '*', '/'].includes(k)) insert(k);
+        else if (k === '(' || k === ')') { smartParen(); updatePreview(); }
+        else if (k === 'Enter' || k === '=') { e.preventDefault(); evaluate(); }
+        else if (k === 'Backspace') backspace();
+        else if (k === 'Escape') clearAll();
+      });
+    }
+
+    function initRomanCalculator() {
+      const panel = document.getElementById('roman_number_calculator');
+      if (!panel) return;
+      const OPERATORS = '+-*/';
+
+      const display = document.querySelector('.display');
+      const exprEl = display.querySelector('[data-role="expression"]');
+      const resultEl = display.querySelector('[data-role="result"]');
+
+      const ROMAN_VALUES = { I: 1, V: 5, X: 10, L: 50, C: 100, D: 500, M: 1000 };
+      const VALID_ROMAN = /^M{0,3}(CM|CD|D?C{0,3})(XC|XL|L?X{0,3})(IX|IV|V?I{0,3})$/;
+      const TOKENS = [
+        [1000, 'M'], [900, 'CM'], [500, 'D'], [400, 'CD'],
+        [100, 'C'], [90, 'XC'], [50, 'L'], [40, 'XL'],
+        [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I']
+      ];
+      let expr = '';
+
+      function isValid(str) {
+        if (!str.length) return false;
+        let part = '';
+        let valid = false;
+        for (let i = 0; i <= str.length; i++) {
+          const ch = str[i];
+          if (ch === undefined || OPERATORS.includes(ch)) {
+            if (!VALID_ROMAN.test(part)) return false;
+            valid = true;
+            part = '';
+          } else {
+            part += ch;
+          }
+        }
+        return valid;
+      }
+      function build_formula(str) {
+        const decimal = str.replace(/[MDCLXVI]+/g, m => fromRoman(m));
+        const value = Function('"use strict"; return (' + decimal + ')')();
+        if (typeof value !== 'number' || !isFinite(value)) throw new Error('Invalid expression');
+        return value;
+      }
+
+      function fromRoman(s) {
+        let total = 0;
+        for (let i = s.length - 1; i >= 0; i--) {
+          const curr = ROMAN_VALUES[s[i]];
+          const next = i + 1 < s.length ? ROMAN_VALUES[s[i + 1]] : 0;
+          total += curr < next ? -curr : curr;
+        }
+        return total;
+      }
+
+      function toRoman(n) {
+        let result = '';
+        for (const [value, symbol] of TOKENS) {
+          while (n >= value) { result += symbol; n -= value; }
+        }
+        return result;
+      }
+
+      function updatePreview() {
+        exprEl.textContent = expr || '\u00A0';
+        resultEl.textContent = expr ? '' : '';
+      }
+      function insert(text) {
+        const lastCh = expr.slice(-1);
+        if (OPERATORS.includes(text)) {
+          if (OPERATORS.includes(lastCh)) {
+            expr = expr.slice(0, -1) + text;
+          } else if (!expr && text !== '-') {
+            return;
+          }
+          expr += text;
+        } else {
+          expr += text;
+        }
+        updatePreview();
+      }
+
+      function backspace() {
+        expr = expr.slice(0, -1);
+        updatePreview();
+      }
+
+      function clearAll() {
+        expr = '';
+        exprEl.textContent = '\u00A0';
+        resultEl.textContent = '';
+      }
+
+      function evaluate() {
+        if (!expr.trim()) return;
+        const upper = expr.toUpperCase();
+        if (!isValid(upper)) { resultEl.textContent = 'Invalid'; return; }
+        if (/[+\-*/]$/.test(upper)) {
+          resultEl.textContent = 'Invalid'; return;
+        }
+        // const value = fromRoman(upper);
+        // Call the build_formula function to evaluate the expression. 
+        const value = build_formula(upper);
+        exprEl.textContent = upper + ' =';
+        resultEl.textContent = String(value);
+        //expr = toRoman(value);
+      }
+
+      function visible() { return panel.offsetParent !== null; }
+
+      panel.querySelectorAll('button').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          if (btn.dataset.action === 'clear') clearAll();
+          else if (btn.dataset.action === 'back') backspace();
+          else if (btn.dataset.action === 'equals') evaluate();
+          else if (btn.dataset.insert) insert(btn.dataset.insert);
+        });
+      });
+
+      document.addEventListener('keydown', function (e) {
+        if (!visible()) return;
+        const t = e.target;
+        if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+        const k = e.key.toUpperCase();
+        if (/^[MDCLXVI]$/.test(k)) insert(k);
+        else if (['+', '-', '*', '/'].includes(k)) insert(k);
+        else if (k === 'Enter' || k === '=') { e.preventDefault(); evaluate(); }
+        else if (k === 'Backspace') backspace();
+        else if (k === 'Escape') clearAll();
+      });
+    }
+
+    initDecimalCalculator();
+    initRomanCalculator();
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,90 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Static website hosting for calc app using S3 and CloudFront
+Parameters:
+  indexDocument:
+    Type: String
+    Default: calc.html
+    Description: Default root object for the CloudFront distribution
+
+Resources:
+
+  CalcBucket:
+    Type: AWS::S3::Bucket
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: "To provide a nifty Roman Numeral Calculator"
+        must:
+          - Bucket must remain private with all public access blocked
+          - CloudFront must use Origin Access Control to access the bucket
+          - Bucket policy must allow CloudFront to read objects and deny insecure transport
+    Properties:
+      BucketName: !Sub 'calc-website-${AWS::AccountId}-${AWS::Region}'
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  CalcBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref CalcBucket
+      PolicyDocument:
+        Statement:
+          - Effect: Deny
+            Principal: '*'
+            Action: s3:*
+            Resource:
+              - !GetAtt CalcBucket.Arn
+              - !Join ['', [!GetAtt CalcBucket.Arn, '/*']]
+            Condition:
+              Bool:
+                aws:SecureTransport: false
+          - Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: s3:GetObject
+            Resource: !Join ['', [!GetAtt CalcBucket.Arn, '/*']]
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub 'arn:aws:cloudfront::${AWS::AccountId}:distribution/${CalcDistribution}'
+
+  CalcOriginAccessControl:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub '${AWS::StackName}-oac'
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  CalcDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        DefaultRootObject: !Ref indexDocument
+        Origins:
+          - Id: S3Origin
+            DomainName: !GetAtt CalcBucket.RegionalDomainName
+            OriginAccessControlId: !GetAtt CalcOriginAccessControl.Id
+            S3OriginConfig: {}
+        DefaultCacheBehavior:
+          TargetOriginId: S3Origin
+          ViewerProtocolPolicy: redirect-to-https
+          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6  # CachingOptimized managed policy
+          AllowedMethods:
+            - GET
+            - HEAD
+        HttpVersion: http2
+        PriceClass: PriceClass_100
+
+Outputs:
+
+  CloudFrontURL:
+    Description: CloudFront distribution URL
+    Value: !Join ['', ['https://', !GetAtt CalcDistribution.DomainName]]
+
+  BucketName:
+    Description: S3 bucket name for uploading site files
+    Value: !Ref CalcBucket
